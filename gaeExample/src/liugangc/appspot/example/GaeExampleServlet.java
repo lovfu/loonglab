@@ -21,7 +21,7 @@ import org.apache.poi.poifs.filesystem.POIFSFileSystem;
 @SuppressWarnings("serial")
 public class GaeExampleServlet extends HttpServlet {
 	
-	static Log log = LogFactory.getLog(GaeExampleServlet.class);
+	private static Log log = LogFactory.getLog(GaeExampleServlet.class);
 	
 	public void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
 		
