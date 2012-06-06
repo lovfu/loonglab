@@ -11,6 +11,7 @@ import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.loonglab.hdc.common.HTablePoolFactory;
 
 
 // Class that has nothing but a main.
@@ -25,7 +26,8 @@ public class MyLittleHbaseDemo {
 
     // This instantiates an HTable object that connects you to
     // the "myLittleHBaseTable" table.
-    HTable table = new HTable(config, "roi");
+    HTable table = (HTable) HTablePoolFactory.getPool().getTable("roi");
+    //HTable table = new HTable(config,"roi");
 
     // To add to a row, use Put.  A Put constructor takes the name of the row
     // you want to insert into as a byte array.  In HBase, the Bytes class has
@@ -87,6 +89,8 @@ public class MyLittleHbaseDemo {
       // Make sure you close your scanners when you are done!
       // Thats why we have it inside a try/finally clause
       scanner.close();
+      table.close();
+      
     }
   }
 }
