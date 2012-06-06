@@ -46,11 +46,9 @@ public class DataReader {
     public String getFileName() {
     	return fileName;
     }
-
-	public DataReader(String fileName) throws IOException{	
-		this.fileName=fileName;
-		File file=new File(fileName);
-		lineIterator=FileUtils.lineIterator(file, DataConfig.CHARSET);
+    
+    public DataReader(File file) throws IOException{
+    	lineIterator=FileUtils.lineIterator(file, DataConfig.CHARSET);
 		
 		//初始化头
 		if(lineIterator.hasNext()){
@@ -58,7 +56,10 @@ public class DataReader {
 			header=headLine.split(DataConfig.SEPARATE_TAG);
 			
 		}
+    }
 
+	public DataReader(String fileName) throws IOException{	
+		this(new File(fileName));
 	}
 
 	public boolean hasNext() {		

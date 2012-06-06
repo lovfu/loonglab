@@ -5,7 +5,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
 
-import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -18,10 +17,10 @@ public class ImpFileHandler implements Callable<String> {
 	
 	private static Logger log=LoggerFactory.getLogger(ImpFileHandler.class);
 
-	private String joinFile;
+	private File joinFile;
 	
 	
-	public ImpFileHandler(String joinFile) {
+	public ImpFileHandler(File joinFile) {
 		super();
 		this.joinFile = joinFile;
 	}
@@ -45,13 +44,19 @@ public class ImpFileHandler implements Callable<String> {
 				Put put=new Put(Bytes.toBytes(key));
 				for (int j = 0; j < headers.length; j++) {
 					if(values[j]!=null){
-						put.add(Bytes.toBytes("cf"), Bytes.toBytes(""), Bytes.toBytes(""));
+						put.add(Bytes.toBytes("cf"), Bytes.toBytes(headers[j]), Bytes.toBytes(values[j]));
+						putList.add(put);
+					}
+					
+					if(putList.size()>100){
+						roiTable.put(putList);
+						putList.clear();
 					}
 				}
 				
 			}
 			
-			return joinFile;
+			return joinFile.getCanonicalPath();
 		} catch (Exception e) {
 			log.error(e.getMessage(),e);
 		} finally{
@@ -63,8 +68,8 @@ public class ImpFileHandler implements Callable<String> {
 		return null;
 	}
 	
-	private String getBaseKey(String fileName){
-		File joinFile=new File(fileName);
+	private String getBaseKey(File file){
+		//File joinFile=new File(fileName);
 		String tenantId=joinFile.getName().substring(0, joinFile.getName().length()-4);
 		String type=joinFile.getParentFile().getParentFile().getName();
 		String statDate=joinFile.getParentFile().getName();

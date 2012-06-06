@@ -12,6 +12,7 @@ import java.util.concurrent.Executors;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.loonglab.hdc.common.ApplicationProperties;
 
 import com.cubead.datacenter.ConfigUtil;
 import com.cubead.datacenter.Constants;
@@ -19,16 +20,16 @@ import com.cubead.datacenter.index.parser.CsvFileParser;
 import com.cubead.datacenter.search.GroupUtil;
 
 
-public class JoinFileIndexer {
+public class JoinFileImporter {
 	
-	private static Log log = LogFactory.getLog(JoinFileIndexer.class);
+	private static Log log = LogFactory.getLog(JoinFileImporter.class);
 	//Map<String, CommonIndexer> indexerMap=new HashMap<String, CommonIndexer>();
 	
 	public static int THREAD_COUNT = 2;
 	ExecutorService pool = Executors.newFixedThreadPool(THREAD_COUNT);
 	
 	//按天数分别索引，防止内存溢出
-	public void reIndexByDays(String searchEngine,String roiType,String startDate,String endDate,String tenantId,int dayNum){
+	public void importByDays(String searchEngine,String roiType,String startDate,String endDate,String tenantId,int dayNum){
 		if(startDate==null||endDate==null
 				||"".equals(startDate)||"".equals(endDate)
 				||"-".equals(startDate)||"-".equals(endDate)){
@@ -49,31 +50,23 @@ public class JoinFileIndexer {
 			curNum++;
 			if(curNum==dayNum){
 	        	edate=dayList.get(i);
-	        	//log.info(sdate+"~"+edate);
-	        	reIndex(searchEngine, roiType, sdate, edate, tenantId);
+	        	importJoinFile(searchEngine, roiType, sdate, edate, tenantId);
 	        	
 	        	sdate=null;
 	        	edate=null;
 	        	curNum=0;
 	        }
 	        
-	        
-//	        if(sdate!=null&&edate!=null){	        	
-//	        	log.info(sdate+"~"+edate);
-//	        	//reIndex(searchEngine, roiType, sdate, edate, tenantId);
-//	        	sdate=null;
-//	        	edate=null;
-//	        }
         }
 		
 		if(sdate!=null&&edate==null){
 			edate=dayList.get(dayList.size()-1);
 			//log.info(sdate+"~"+edate);
-			reIndex(searchEngine, roiType, sdate, edate, tenantId);
+			importJoinFile(searchEngine, roiType, sdate, edate, tenantId);
 		}
 	}
 	
-	public void reIndex(String searchEngine,String roiType,String startDate,String endDate,String tenantId){	
+	public void importJoinFile(String searchEngine,String roiType,String startDate,String endDate,String tenantId){	
 		
 		log.info("reIndex join file from "+startDate+" to "+endDate+"("+searchEngine+","+roiType+","+tenantId+")...");
 		//List<String> results=new ArrayList<MonitorResult>();
@@ -82,7 +75,7 @@ public class JoinFileIndexer {
 	        CompletionService<String> ecs = new ExecutorCompletionService<String>(pool);
 	        
 	        long startTime=System.currentTimeMillis();
-	        File root=new File(ConfigUtil.getJoinRoot());
+	        File root=new File(ApplicationProperties.getProperties("join.file.dir"));
 	        
 	        File[] seDirs=root.listFiles(new CommaDelimitFilenameFilter(searchEngine));
 	        
@@ -94,7 +87,7 @@ public class JoinFileIndexer {
 	        			File[] tenantFiles=dateDir.listFiles(new CommaDelimitFilenameFilter(tenantId));
 	        			for (File joinFile : tenantFiles) {							
 	        				//indexFile(joinFile);
-	        				IndexFileHandler handler=new IndexFileHandler(joinFile);
+	        				ImpFileHandler handler=new ImpFileHandler(joinFile);
 	        				ecs.submit(handler);
 	        				n++;
 	        			}
@@ -112,67 +105,6 @@ public class JoinFileIndexer {
         catch (Exception e) {
 	        throw new RuntimeException(e.getMessage(),e);
         }
-	}
-	
-	
-	
-	
-	
-	class IndexFileHandler implements Callable<String> {
-		
-		File joinFile;
-		
-		public IndexFileHandler(File joinFile) {
-	        super();
-	        this.joinFile = joinFile;
-        }
-
-
-
-		@Override
-        public String call() throws Exception {
-			log.debug("start index "+joinFile.getCanonicalPath()+"...");
-	        indexFile(joinFile);
-	        return joinFile.getCanonicalPath();
-        }
-		
-		private void indexFile(File joinFile){
-			CsvFileParser parser=null;
-			try {
-				String tenantId=joinFile.getName().substring(0, joinFile.getName().length()-4);
-				String type=joinFile.getParentFile().getParentFile().getName();
-				String indexType=Constants.ROI_TYPE_INDEX_MAP.get(Constants.FILE_TYPE_MAP.get("/"+type));
-				String statDate=joinFile.getParentFile().getName();
-				String searchEngine=joinFile.getParentFile().getParentFile().getParentFile().getName();
-				//log.info("index "+tenantId+","+indexType);		
-//				CommonIndexer indexer=indexerMap.get(tenantId+"/"+indexType);
-//				if(indexer==null){
-//					indexer=new CommonIndexer(tenantId, indexType);
-//					indexerMap.put(tenantId+"/"+indexType, indexer);
-//				}
-				
-				CommonIndexer indexer=new CommonIndexer(tenantId, indexType);
-				
-				String deleteQuery="searchEngine:"+searchEngine+" AND statDate:"+statDate;
-				indexer.delete(deleteQuery);
-			
-				//log.info("index "+joinFile.getCanonicalPath()+"...");
-				//indexer=new CommonIndexer(tenantId, indexType);
-		        parser=new CsvFileParser(joinFile);
-		        while(parser.hasNext()){
-		        	Map<String, String> row=parser.next();
-		        	indexer.addDocument(row);
-		        	//indexer.updateDocument(row);
-		        }
-		        
-		        indexer.close();
-	        }
-	        finally {
-		        if(parser!=null)
-		        	parser.close();
-	        }
-		}
-		
 	}
 	
 	
