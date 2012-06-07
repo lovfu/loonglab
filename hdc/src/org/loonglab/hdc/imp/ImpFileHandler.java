@@ -37,7 +37,7 @@ public class ImpFileHandler implements Callable<String> {
 			reader=new DataReader(joinFile);
 			String[] headers=reader.getHeader();   
 			int i=0;
-			if(reader.hasNext()){
+			while(reader.hasNext()){
 				i++;
 				String[] values=reader.next();
 				String key=getBaseKey(joinFile)+"_"+i;
@@ -45,16 +45,22 @@ public class ImpFileHandler implements Callable<String> {
 				for (int j = 0; j < headers.length; j++) {
 					if(values[j]!=null){
 						put.add(Bytes.toBytes("cf"), Bytes.toBytes(headers[j]), Bytes.toBytes(values[j]));
-						putList.add(put);
+						
 					}
 					
-					if(putList.size()>100){
-						roiTable.put(putList);
-						putList.clear();
-					}
+					
+				}
+				
+				putList.add(put);
+				if(putList.size()>100){
+					roiTable.put(putList);
+					putList.clear();
 				}
 				
 			}
+			
+			if(putList.size()>0)
+				roiTable.put(putList);
 			
 			return joinFile.getCanonicalPath();
 		} catch (Exception e) {

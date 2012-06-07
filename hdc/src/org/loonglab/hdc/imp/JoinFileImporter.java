@@ -66,14 +66,15 @@ public class JoinFileImporter {
 	
 	public void importJoinFile(String searchEngine,String roiType,String startDate,String endDate,String tenantId){	
 		
-		log.info("reIndex join file from "+startDate+" to "+endDate+"("+searchEngine+","+roiType+","+tenantId+")...");
+		log.info("import join file from "+startDate+" to "+endDate+"("+searchEngine+","+roiType+","+tenantId+")...");
 		//List<String> results=new ArrayList<MonitorResult>();
 		try {
 	        int n=0;
 	        CompletionService<String> ecs = new ExecutorCompletionService<String>(pool);
 	        
 	        long startTime=System.currentTimeMillis();
-	        File root=new File(ApplicationProperties.getProperties("join.file.dir"));
+	        String rootDir=ApplicationProperties.getProperties("join.file.dir");
+	        File root=new File(rootDir);
 	        
 	        File[] seDirs=root.listFiles(new CommaDelimitFilenameFilter(searchEngine));
 	        
@@ -179,5 +180,15 @@ public class JoinFileImporter {
 			log.error(e.getMessage(),e);
 			throw new RuntimeException(e.getMessage(),e);
 		}
+	}
+	
+	public void shutdown(){
+		pool.shutdown();
+	}
+	
+	public static void main(String[] args) {
+		JoinFileImporter importer=new JoinFileImporter();
+		importer.importJoinFile("baidu", "-", "2012-02-09", "2012-02-09", "245");
+		importer.shutdown();
 	}
 }
