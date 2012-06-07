@@ -2,22 +2,20 @@ package org.loonglab.hdc.imp;
 
 import java.io.File;
 import java.io.FilenameFilter;
+import java.text.ParseException;
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.Callable;
 import java.util.concurrent.CompletionService;
 import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import org.apache.commons.lang.time.DateFormatUtils;
+import org.apache.commons.lang.time.DateUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.loonglab.hdc.common.ApplicationProperties;
-
-import com.cubead.datacenter.ConfigUtil;
-import com.cubead.datacenter.Constants;
-import com.cubead.datacenter.index.parser.CsvFileParser;
-import com.cubead.datacenter.search.GroupUtil;
 
 
 public class JoinFileImporter {
@@ -38,7 +36,7 @@ public class JoinFileImporter {
 		}
 		
 		String dateQuery="["+startDate+" TO "+endDate+"]";
-		List<String> dayList=GroupUtil.getAllDates(dateQuery);
+		List<String> dayList=getAllDates(dateQuery);
 		
 		String sdate=null;
 		String edate=null;
@@ -154,5 +152,32 @@ public class JoinFileImporter {
 			return false;
 		}
 		
+	}
+	
+	private List<String> getAllDates(String dateQuery){
+		
+		try {
+			List<String> list=new ArrayList<String>();
+			
+			String[] temp=dateQuery.split(" ");
+			String startDate=temp[0].substring(1);
+			String endDate=temp[2].substring(0, temp[2].length()-1);
+			
+			Date sDate=DateUtils.parseDate(startDate, new String[]{"yyyy-MM-dd"});			
+			
+			
+			Date eDate=DateUtils.parseDate(endDate, new String[]{"yyyy-MM-dd"});
+			while(!DateUtils.isSameDay(sDate, eDate)){
+				list.add(DateFormatUtils.format(sDate, "yyyy-MM-dd"));
+				sDate=DateUtils.addDays(sDate, 1);
+			}
+			
+			list.add(endDate);
+			
+			return list;
+		} catch (ParseException e) {
+			log.error(e.getMessage(),e);
+			throw new RuntimeException(e.getMessage(),e);
+		}
 	}
 }
